@@ -174,6 +174,7 @@ def add_tag_to_email(mailbox, message_id, tag):
     command = f"su - zimbra -c \"zmmailbox -z -m {mailbox} tm {message_id} {tag}\""
     return run_zimbra_command(command) is not None
 
+# Modified portion of tag_email_with_malicious_content in zimbra_tagging.py
 def tag_email_with_malicious_content(email_info):
     """Tag an email as malicious in Zimbra."""
     malicious_logger = logging.getLogger('malicious_log')
@@ -201,10 +202,17 @@ def tag_email_with_malicious_content(email_info):
     if add_tag_to_email(mailbox, message_id, MALICIOUS_TAG):
         print(f"Successfully tagged email with {MALICIOUS_TAG} tag in Zimbra")
 
+        # Update email_info with message_id for logging
+        email_info['message_id'] = message_id
+        
         # Log detailed information about the malicious content
         malicious_attachments = email_info.get('malicious_attachments', [])
         for attachment in malicious_attachments:
             malicious_logger.info(f"Tagged message with ID {message_id} - Malicious attachment: {attachment['filename']} - Hash: {attachment['hash']}")
+            
+            # Log to JSON file after successful tagging
+            from json_logger import log_malicious_attachment
+            log_malicious_attachment(email_info, attachment)
 
         return True
     else:
